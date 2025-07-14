@@ -21,6 +21,11 @@ type state struct {
 func NewModel(renderer *lipgloss.Renderer) *model {
 	return &model{
 		theme: BasicTheme(renderer, nil),
+		state: state{
+			cursor: cursorState{
+				visible: true,
+			},
+		},
 	}
 }
 
@@ -30,16 +35,23 @@ func (m model) Init() tea.Cmd {
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c":
 			return m, tea.Quit
 		}
+
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+
 	case CursorTickMsg:
 		m, cmd := m.CursorUpdate(msg)
+		return m, cmd
+
+	case DelayCompleteMsg:
+		m, cmd := m.SplashUpdate(msg)
 		return m, cmd
 	}
 
@@ -47,5 +59,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	return m.SplashView()
+	if !m.IsLoadingComplete() {
+		return m.SplashView()
+	}
+
+	return m.HomeView()
 }
